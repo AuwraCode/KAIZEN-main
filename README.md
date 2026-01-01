@@ -2,7 +2,7 @@
 
 > "Efficiency is doing things right; effectiveness is doing the right things."
 
-**KAIZEN HUD** is a minimalist, Always-On-Top desktop dashboard designed for software engineers and data scientists. It combines background file automation (Seiri) with a deep work focus timer (Monk Mode) in a non-intrusive, cyberpunk-styled interface.
+**KAIZEN HUD** is a minimalist, Always-On-Top desktop dashboard designed for high-performance workflows. It combines automated file organization (Seiri) with a deep work focus timer (Monk Mode) in a non-intrusive interface.
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey)
@@ -10,51 +10,58 @@
 
 ## ✨ Key Features
 
-* **🕵️ Background Automation:** Automatically watches your `Downloads` and `Desktop` folders. Moves files to organized subfolders (Images, Documents, Code, Installers) instantly upon creation.
-* **🧘 Monk Mode:** One-click activation of your "Deep Work" environment. Launches VS Code, documentation, and specific URLs while starting a focus timer.
-* **🎨 Minimalist HUD:** A tiny, borderless window that sits on your desktop. Custom-drawn title bar and dark mode aesthetic.
-* **⚙️ Live Configuration:** Configure watch paths and URLs directly within the app without restarting.
-* **🚀 Zero Bloat:** Built with pure Python `tkinter` and `watchdog`. No heavy frameworks.
+* **🕵️ Background Automation:** Automatically watches `Downloads`. Instantly organizes files into Images, Documents, Code, and Installers upon creation.
+* **🧘 Monk Mode:** One-click "Deep Work" environment. Launches tools (VS Code, URLs) and starts a focus timer.
+* **🎨 OS-Native Design:**
+    * **Windows:** Optimized for NTFS, uses Segoe UI, seamless borderless window.
+    * **Linux:** Optimized for GNOME/KDE, uses DejaVu/Liberation fonts, XDG compliant.
+* **📊 ROI Stats:** Tracks files organized and minutes spent in deep focus.
+* **🚀 Zero Bloat:** Built with pure Python `tkinter` and `watchdog`.
 
 ## 🛠️ Tech Stack
 
-* **Language:** Python 3
-* **GUI:** Tkinter (Custom drawn components, no OS borders)
-* **Concurrency:** `threading` for non-blocking I/O operations
-* **File System:** `watchdog` library for real-time file monitoring
-* **Architecture:** Event-Driven, OOP
+* **Core:** Python 3
+* **GUI:** Tkinter (Custom drawn, DPI aware)
+* **System:** `watchdog` (File monitoring), `threading` (Async I/O)
 
 ## 📦 Installation
 
-1.  Clone the repository:
-    ```bash
+1.  **Clone the repository:**
+
     git clone [https://github.com/your-username/kaizen-hud.git](https://github.com/your-username/kaizen-hud.git)
     cd kaizen-hud
-    ```
 
-2.  Install dependencies:
-    ```bash
-    pip install watchdog
-    ```
-    *(Note: Tkinter is usually pre-installed with Python. On Fedora/Ubuntu: `sudo dnf install python3-tkinter`)*
+2.  **Install dependencies:**
 
-3.  Run the HUD:
-    ```bash
-    python kaizen.py
-    ```
+    pip install -r requirements.txt
+
+    *(Note for Linux Users: If you encounter errors, ensure Tkinter is installed system-wide: `sudo apt-get install python3-tk`)*
 
 ## 🎮 Usage
 
-* **Move:** Drag the window by clicking anywhere on the top bar.
-* **Minimize:** Click `_` to send to taskbar.
-* **Settings:** Click `[SETTINGS]` to configure folders and URLs.
-* **Monk Mode:** Click `ACTIVATE MONK MODE` to start the session. The timer runs even if you switch to settings.
+### Windows
+Run the Windows-optimized version. To hide the console window, rename the file extension to `.pyw`.
 
-## 🗺️ Roadmap
+    python kaizen_win.py
 
-* [x] Integration with Pomodoro technique
-* [ ] Daily stats visualization (matplotlib)
-* [ ] Cross-platform "blocker" for distracting apps
+### Linux
+Run the Linux-optimized version.
+
+    python3 kaizen_linux.py
+
+### Interface Controls
+* **Move:** Drag the window by the top bar.
+* **Monk Mode:** Click `MONK MODE` to start the timer and launch apps.
+* **Settings:** Click `[SETTINGS]` to configure paths, URLs, and timer duration.
+* **Exit:** Click `×` or use the Exit button.
+
+## ⚙️ Configuration
+
+The app creates a lightweight config file at `~/.kaizen_hud_config.json`. You can edit this via the **[SETTINGS]** menu in the app or manually:
+
+* **watch_paths:** List of folders to monitor (separated by `;`).
+* **monk_urls:** List of websites to open on Focus Start.
+* **pomo_work/break:** Timer duration in minutes.
 
 ---
-*Built with discipline by Grzegorz Handzel (Auwra).*
+*Built with discipline.*
