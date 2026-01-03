@@ -19,14 +19,14 @@ from watchdog.events import FileSystemEventHandler
 
 # --- MIDNIGHT MODULAR PALETTE ---
 COLORS = {
-    "bg": "#020205",        # Void Black (Background gaps)
-    "module": "#0B0B14",    # Module Background (Panels)
+    "bg": "#020205",        # Void Black
+    "module": "#0B0B14",    # Module Panel
     "fg": "#E0E0E0",        # Main Text
     "accent": "#7F00FF",    # Midnight Purple
     "accent_glow": "#B026FF", # Neon Purple
     "break_mode": "#4B0082",# Indigo
     "alert": "#FF0044",     # Red
-    "dim": "#3A3A45",       # Dim Text
+    "dim": "#505060",       # Dim Text
     "input": "#15151A",     # Input Fields
     "border": "#1A1A2E",    # Subtle borders
     "success": "#00FF41"    # Green
@@ -43,6 +43,7 @@ FONTS = {
 
 CONFIG_FILE = Path.home() / ".kaizen_midnight_config.json"
 NOTES_FILE = Path.home() / "kaizen_brain_dump.txt"
+OVERLAY_POSITIONS = ["TOP_CENTER", "TOP_LEFT", "TOP_RIGHT", "BOTTOM_CENTER", "BOTTOM_LEFT", "BOTTOM_RIGHT"]
 
 # --- UTILS ---
 def hex_to_rgb(hex_val):
@@ -76,9 +77,10 @@ class Config:
         self.pomo_work = 25
         self.pomo_break = 5
         self.sound_enabled = True
+        self.overlay_enabled = True
+        self.overlay_pos = "TOP_CENTER"
         self.hotkey_start = "ctrl+shift+space"
         self.hotkey_notes = "ctrl+j"
-        self.overlay_pos = "TOP_CENTER"
         
         self.stats = {
             "xp": 0, "level": 1, "files_moved": 0,
@@ -119,7 +121,6 @@ class SplashScreen(tk.Toplevel):
         
         self.cv = tk.Canvas(self, width=w, height=h, bg=COLORS["bg"], highlightthickness=0)
         self.cv.pack()
-        
         self.step = 0
         self.animate_rose()
         
@@ -139,7 +140,7 @@ class SplashScreen(tk.Toplevel):
             self.after(5, self.animate_rose)
         else:
             self.cv.create_text(150, 260, text="KAIZEN // MIDNIGHT", fill=COLORS["fg"], font=FONTS["header"])
-            self.after(1200, self.fade_out)
+            self.after(1000, self.fade_out)
 
     def fade_out(self):
         alpha = self.attributes("-alpha")
@@ -192,7 +193,6 @@ class SeiriEditor(tk.Frame):
         super().__init__(parent, bg=COLORS["module"])
         self.pack(fill="both", expand=True, padx=0, pady=0)
         
-        # Treeview with dark style
         cols = ("Category", "Extensions")
         self.tree = ttk.Treeview(self, columns=cols, show="headings", height=8)
         self.tree.heading("Category", text="CATEGORY")
@@ -209,29 +209,25 @@ class SeiriEditor(tk.Frame):
         self.tree.pack(fill="both", expand=True, pady=(0, 10))
         self.populate()
         
-        # Input Area (Fixed Labels)
         ctrl = tk.Frame(self, bg=COLORS["module"])
         ctrl.pack(fill="x", pady=5)
         
-        # Category Input
         f1 = tk.Frame(ctrl, bg=COLORS["module"])
         f1.pack(side="left", padx=(0, 10))
-        tk.Label(f1, text="CATEGORY NAME", bg=COLORS["module"], fg=COLORS["dim"], font=FONTS["label"]).pack(anchor="w")
+        tk.Label(f1, text="CATEGORY", bg=COLORS["module"], fg=COLORS["dim"], font=FONTS["label"]).pack(anchor="w")
         self.ent_cat = tk.Entry(f1, bg=COLORS["input"], fg="white", insertbackground="white", width=15, bd=0)
         self.ent_cat.pack(ipady=4)
         
-        # Ext Input
         f2 = tk.Frame(ctrl, bg=COLORS["module"])
         f2.pack(side="left", padx=(0, 10))
-        tk.Label(f2, text="EXTENSIONS (e.g. .py, .exe)", bg=COLORS["module"], fg=COLORS["dim"], font=FONTS["label"]).pack(anchor="w")
+        tk.Label(f2, text="EXTENSIONS", bg=COLORS["module"], fg=COLORS["dim"], font=FONTS["label"]).pack(anchor="w")
         self.ent_ext = tk.Entry(f2, bg=COLORS["input"], fg="white", insertbackground="white", width=20, bd=0)
         self.ent_ext.pack(ipady=4)
         
-        # Buttons
         btn_f = tk.Frame(ctrl, bg=COLORS["module"])
         btn_f.pack(side="right", fill="y")
         tk.Button(btn_f, text="ADD", bg=COLORS["bg"], fg=COLORS["success"], bd=0, command=self.add_entry, font=FONTS["header"]).pack(side="top", fill="x", pady=1)
-        tk.Button(btn_f, text="DELETE", bg=COLORS["bg"], fg=COLORS["alert"], bd=0, command=self.delete_entry, font=FONTS["header"]).pack(side="bottom", fill="x", pady=1)
+        tk.Button(btn_f, text="DEL", bg=COLORS["bg"], fg=COLORS["alert"], bd=0, command=self.delete_entry, font=FONTS["header"]).pack(side="bottom", fill="x", pady=1)
 
     def populate(self):
         for i in self.tree.get_children(): self.tree.delete(i)
@@ -253,7 +249,7 @@ class SeiriEditor(tk.Frame):
                 del CONFIG.extensions[cat]
                 self.populate()
 
-# --- SETTINGS WINDOW (FIXED VISUALS) ---
+# --- SETTINGS WINDOW ---
 class SettingsWindow(tk.Toplevel):
     def __init__(self, parent, callback):
         super().__init__(parent)
@@ -263,22 +259,19 @@ class SettingsWindow(tk.Toplevel):
         self.overrideredirect(True)
         self.attributes("-topmost", True)
         
-        # Center on screen
         ws, hs = self.winfo_screenwidth(), self.winfo_screenheight()
-        w, h = 450, 550
+        w, h = 450, 580
         self.geometry(f"{w}x{h}+{ws//2 - w//2}+{hs//2 - h//2}")
         
         self.current_frame = None
         self._build_ui()
 
     def _build_ui(self):
-        # Header
         h = tk.Frame(self, bg=COLORS["bg"], height=40)
         h.pack(fill="x")
         tk.Label(h, text="SYSTEM CONFIGURATION", bg=COLORS["bg"], fg="white", font=FONTS["header"]).pack(side="left", padx=15)
         tk.Button(h, text="×", bg=COLORS["bg"], fg="#666", bd=0, font=("Arial", 12), command=self.destroy).pack(side="right", padx=10)
 
-        # Custom Nav Bar (Replaces Tabs to fix ugly colors)
         nav = tk.Frame(self, bg=COLORS["bg"])
         nav.pack(fill="x", padx=15, pady=(0, 10))
         
@@ -288,14 +281,11 @@ class SettingsWindow(tk.Toplevel):
         self.btn_seiri = tk.Button(nav, text="SEIRI EDITOR", bg=COLORS["module"], fg="#888", bd=0, width=15, command=lambda: self.switch_tab("seiri"))
         self.btn_seiri.pack(side="left")
 
-        # Container
         self.container = tk.Frame(self, bg=COLORS["module"])
         self.container.pack(fill="both", expand=True, padx=15, pady=(0, 15))
         
-        # Init Tab
         self.switch_tab("gen")
-
-        # Footer
+        
         tk.Button(self, text="APPLY & REBOOT", bg=COLORS["accent"], fg="white", bd=0, font=FONTS["header"], command=self.save).pack(fill="x", side="bottom", ipady=12)
 
     def switch_tab(self, tab):
@@ -313,7 +303,37 @@ class SettingsWindow(tk.Toplevel):
             self.current_frame = SeiriEditor(self.container)
 
     def _build_general(self, p):
-        lbl = lambda t: tk.Label(p, text=t, bg=COLORS["module"], fg=COLORS["dim"], font=FONTS["label"]).pack(anchor="w", pady=(10, 2))
+        # -- SYSTEM TOGGLES --
+        lbl_sys = tk.Label(p, text="SYSTEM OVERRIDE", bg=COLORS["module"], fg=COLORS["dim"], font=FONTS["label"])
+        lbl_sys.pack(anchor="w", pady=(0, 5))
+        
+        tog_frame = tk.Frame(p, bg=COLORS["module"])
+        tog_frame.pack(fill="x", pady=(0, 10))
+        
+        self.var_sound = tk.BooleanVar(value=CONFIG.sound_enabled)
+        chk_sound = tk.Checkbutton(tog_frame, text="AUDIO FEEDBACK", variable=self.var_sound, 
+                                   bg=COLORS["module"], fg="white", selectcolor=COLORS["bg"], 
+                                   activebackground=COLORS["module"], activeforeground="white")
+        chk_sound.pack(side="left", padx=(0, 15))
+
+        self.var_overlay = tk.BooleanVar(value=CONFIG.overlay_enabled)
+        chk_overlay = tk.Checkbutton(tog_frame, text="ENABLE OVERLAY", variable=self.var_overlay, 
+                                     bg=COLORS["module"], fg="white", selectcolor=COLORS["bg"],
+                                     activebackground=COLORS["module"], activeforeground="white", command=self.toggle_pos_state)
+        chk_overlay.pack(side="left")
+
+        # -- OVERLAY POS --
+        lbl_pos = tk.Label(p, text="OVERLAY POSITION", bg=COLORS["module"], fg=COLORS["dim"], font=FONTS["label"])
+        lbl_pos.pack(anchor="w", pady=(5, 2))
+        
+        self.var_pos = tk.StringVar(value=CONFIG.overlay_pos)
+        self.opt_pos = tk.OptionMenu(p, self.var_pos, *OVERLAY_POSITIONS)
+        self.opt_pos.config(bg=COLORS["input"], fg="white", bd=0, highlightthickness=0, activebackground=COLORS["accent"])
+        self.opt_pos["menu"].config(bg=COLORS["module"], fg="white", bd=0)
+        self.opt_pos.pack(fill="x", pady=(0, 10))
+
+        # -- PATHS & APPS --
+        lbl = lambda t: tk.Label(p, text=t, bg=COLORS["module"], fg=COLORS["dim"], font=FONTS["label"]).pack(anchor="w", pady=(5, 2))
         
         lbl("WATCH PATHS (; separated)")
         self.ent_paths = self._mk_entry(p, ";".join(CONFIG.watch_paths))
@@ -332,9 +352,14 @@ class SettingsWindow(tk.Toplevel):
         f2 = tk.Frame(fr, bg=COLORS["module"]); f2.pack(side="left", fill="x", expand=True, padx=(5, 0))
         tk.Label(f2, text="BREAK (min)", bg=COLORS["module"], fg=COLORS["break_mode"], font=FONTS["label"]).pack(anchor="w")
         self.ent_break = self._mk_entry(f2, CONFIG.pomo_break)
+        
+        self.toggle_pos_state() # Init state
 
-        lbl("OVERLAY POSITION")
-        self.ent_pos = self._mk_entry(p, CONFIG.overlay_pos)
+    def toggle_pos_state(self):
+        if self.var_overlay.get():
+            self.opt_pos.config(state="normal", bg=COLORS["input"])
+        else:
+            self.opt_pos.config(state="disabled", bg=COLORS["bg"])
 
     def _mk_entry(self, p, v):
         e = tk.Entry(p, bg=COLORS["input"], fg="white", insertbackground="white", 
@@ -344,10 +369,14 @@ class SettingsWindow(tk.Toplevel):
         return e
 
     def save(self):
+        CONFIG.sound_enabled = self.var_sound.get()
+        CONFIG.overlay_enabled = self.var_overlay.get()
+        CONFIG.overlay_pos = self.var_pos.get()
+        
         CONFIG.watch_paths = [x.strip() for x in self.ent_paths.get().split(";") if x.strip()]
         CONFIG.monk_apps = [x.strip() for x in self.ent_apps.get().split(";") if x.strip()]
         CONFIG.monk_urls = [x.strip() for x in self.ent_urls.get().split(";") if x.strip()]
-        CONFIG.overlay_pos = self.ent_pos.get().strip()
+        
         try:
             CONFIG.pomo_work = int(self.ent_work.get())
             CONFIG.pomo_break = int(self.ent_break.get())
@@ -382,7 +411,7 @@ class BrainDump(tk.Toplevel):
         with open(NOTES_FILE, "w", encoding="utf-8") as f: f.write(self.text.get("1.0", "end-1c"))
         self.withdraw()
 
-# --- MAIN APP (MODULAR DESIGN) ---
+# --- MAIN APP ---
 class KaizenMidnight(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -436,9 +465,8 @@ class KaizenMidnight(tk.Tk):
         self.configure(bg=COLORS["bg"])
         self.attributes("-topmost", True)
         
-        # CENTER WINDOW LOGIC
         ws, hs = self.winfo_screenwidth(), self.winfo_screenheight()
-        w, h = 360, 420 # Larger, Modular Size
+        w, h = 360, 420 
         x = (ws - w) // 2
         y = (hs - h) // 2
         self.geometry(f"{w}x{h}+{x}+{y}")
@@ -450,10 +478,8 @@ class KaizenMidnight(tk.Tk):
         if self.pomo_active:
             val = (math.sin(self.pulse_phase) + 1) / 2
             target = COLORS["accent"] if self.mode == "WORK" else COLORS["break_mode"]
-            
-            # Pulse visual elements
             glow = interpolate_color(COLORS["module"], target, val * 0.3)
-            self.mod_timer.config(bg=glow) # Pulse Timer Module BG
+            self.mod_timer.config(bg=glow)
             self.cv_timer.config(bg=glow)
             self.pulse_phase += 0.15
         else:
@@ -462,7 +488,7 @@ class KaizenMidnight(tk.Tk):
         self.after(50, self._animate_pulse)
 
     def _build_modular_ui(self):
-        # 1. STATUS MODULE (TOP)
+        # 1. STATUS
         self.mod_status = tk.Frame(self, bg=COLORS["module"], height=40)
         self.mod_status.pack(fill="x", padx=2, pady=2)
         
@@ -471,17 +497,15 @@ class KaizenMidnight(tk.Tk):
         ctrls = tk.Frame(self.mod_status, bg=COLORS["module"])
         ctrls.pack(side="right", padx=5)
         def mk_icon(t, c): tk.Label(ctrls, text=t, fg="#888", bg=COLORS["module"], cursor="hand2").pack(side="left", padx=5); ctrls.children["!label" + ("" if t=="⚙" else ("2" if t=="🧠" else "3"))].bind("<Button-1>", lambda e: c())
-        
         mk_icon("⚙", self.open_settings)
         mk_icon("🧠", self.toggle_brain_dump)
         mk_icon("×", self.quit_app)
 
-        # XP Bar tiny
         self.cv_xp = tk.Canvas(self, bg=COLORS["bg"], height=2, highlightthickness=0)
         self.cv_xp.pack(fill="x")
         self.xp_fill = self.cv_xp.create_rectangle(0,0,0,2, fill=COLORS["accent_glow"], width=0)
 
-        # 2. CORE TIMER MODULE (CENTER)
+        # 2. TIMER
         self.mod_timer = tk.Frame(self, bg=COLORS["module"])
         self.mod_timer.pack(fill="both", expand=True, padx=2, pady=2)
         
@@ -491,11 +515,10 @@ class KaizenMidnight(tk.Tk):
         self.cv_timer = tk.Canvas(self.mod_timer, bg=COLORS["module"], height=100, width=300, highlightthickness=0)
         self.cv_timer.pack(pady=10)
         self.txt_timer = self.cv_timer.create_text(150, 50, text="00:00", fill=COLORS["fg"], font=FONTS["timer"])
-        # Circular or Bar progress? Let's stick to bar for modular look
         self.bar_bg = self.cv_timer.create_rectangle(50, 90, 250, 94, fill=COLORS["bg"], width=0)
         self.bar_fg = self.cv_timer.create_rectangle(50, 90, 50, 94, fill=COLORS["accent"], width=0)
 
-        # 3. MISSION MODULE
+        # 3. MISSION
         self.mod_mission = tk.Frame(self, bg=COLORS["module"])
         self.mod_mission.pack(fill="x", padx=2, pady=2)
         
@@ -505,7 +528,7 @@ class KaizenMidnight(tk.Tk):
         self.ent_mission.pack(fill="x", padx=15, pady=15, ipady=8)
         self.ent_mission.bind("<FocusIn>", lambda e: self.ent_mission.delete(0, "end") if "DIRECTIVE" in self.ent_mission.get() else None)
 
-        # 4. CONTROL MODULE
+        # 4. CONTROL
         self.mod_ctrl = tk.Frame(self, bg=COLORS["module"])
         self.mod_ctrl.pack(fill="x", padx=2, pady=2)
         
@@ -537,12 +560,15 @@ class KaizenMidnight(tk.Tk):
         self.btn.config(text=f"ENGAGE ({CONFIG.hotkey_start})")
         self.after(200, self._poll_queue)
         self._update_stats()
+        
+        # Immediate overlay update if toggled off
+        if not CONFIG.overlay_enabled and self.overlay:
+            self.overlay.withdraw()
 
     def _update_stats(self):
         xp = CONFIG.stats["xp"]
         lvl = CONFIG.stats["level"]
         self.lbl_stats.config(text=f"LVL {lvl} // XP: {xp}")
-        # XP Bar logic
         prog = (xp % 1000) / 1000
         w = self.winfo_width()
         self.cv_xp.coords(self.xp_fill, 0, 0, w * prog, 2)
@@ -556,10 +582,11 @@ class KaizenMidnight(tk.Tk):
             self.btn.config(text="TERMINATE", fg=COLORS["alert"], bg=COLORS["module"])
             self.ent_mission.config(state="disabled")
             
-            # SHOW OVERLAY
-            if not self.overlay: self.overlay = TacticalOverlay(self)
-            self.overlay.deiconify()
-            self.overlay.reposition()
+            # OVERLAY LOGIC
+            if CONFIG.overlay_enabled:
+                if not self.overlay: self.overlay = TacticalOverlay(self)
+                self.overlay.deiconify()
+                self.overlay.reposition()
             
             if CONFIG.sound_enabled: winsound.Beep(400, 200)
             for app in CONFIG.monk_apps: subprocess.Popen(app, shell=True)
@@ -570,7 +597,7 @@ class KaizenMidnight(tk.Tk):
             self.btn.config(text=f"ENGAGE ({CONFIG.hotkey_start})", fg=COLORS["accent"], bg=COLORS["bg"])
             self.ent_mission.config(state="normal")
             if self.overlay: self.overlay.withdraw()
-            self.mod_timer.config(bg=COLORS["module"]) # Reset glow
+            self.mod_timer.config(bg=COLORS["module"])
 
     def _tick(self):
         if self.pomo_active and self.time_left > 0:
@@ -589,7 +616,7 @@ class KaizenMidnight(tk.Tk):
             col = COLORS["accent"] if self.mode == "WORK" else COLORS["break_mode"]
             self.cv_timer.itemconfig(self.bar_fg, fill=col)
             
-            if self.overlay:
+            if self.overlay and CONFIG.overlay_enabled:
                 self.overlay.update_status(f"[{self.mode}] {t_str} :: {self.ent_mission.get()}", col)
             
             self.after(1000, self._tick)
